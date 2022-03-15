@@ -68,6 +68,7 @@ import (
 	"sigs.k8s.io/external-dns/provider/ultradns"
 	"sigs.k8s.io/external-dns/provider/vinyldns"
 	"sigs.k8s.io/external-dns/provider/vultr"
+	"sigs.k8s.io/external-dns/provider/yandex"
 	"sigs.k8s.io/external-dns/registry"
 	"sigs.k8s.io/external-dns/source"
 )
@@ -327,6 +328,8 @@ func main() {
 		p, err = gandi.NewGandiProvider(ctx, domainFilter, cfg.DryRun)
 	case "safedns":
 		p, err = safedns.NewSafeDNSProvider(domainFilter, cfg.DryRun)
+	case "yandex":
+		p, err = yandex.NewYandexProvider(ctx, domainFilter, zoneIDFilter, cfg.YandexIamKeyFile, cfg.YandexFolder, cfg.YandexZoneType, cfg.DryRun)
 	default:
 		log.Fatalf("unknown dns provider: %s", cfg.Provider)
 	}
