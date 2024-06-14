@@ -85,7 +85,7 @@ func getSdkDNSZoneClient(ctx context.Context, iamKeyFile string) (dnsZoneClient,
 	return dnsZoneClient, nil
 }
 
-//NewYandexProvider initializes a new Yandex Cloud DNS based Provider.
+// NewYandexProvider initializes a new Yandex Cloud DNS based Provider.
 func NewYandexProvider(ctx context.Context, domainFilter endpoint.DomainFilter, zoneIDFilter provider.ZoneIDFilter, iamKeyFile string, folder string, zoneType string, dryRun bool) (*YandexProvider, error) {
 	dnsZoneClient, err := getSdkDNSZoneClient(ctx, iamKeyFile)
 	if err != nil {
@@ -126,20 +126,31 @@ func (p *YandexProvider) Records(ctx context.Context) (endpoints []*endpoint.End
 	if err != nil {
 		return nil, err
 	}
+
+	var pageToken = ""
 	for _, zone := range zones {
-		req := dns.ListDnsZoneRecordSetsRequest{
-			DnsZoneId: zone.Id,
-		}
-
-		records, err := p.dnsZoneClient.ListRecordSets(ctx, &req)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, record := range records.RecordSets {
-			if provider.SupportedRecordType(record.Type) {
-				endpoints = append(endpoints, endpoint.NewEndpointWithTTL(record.Name, record.Type, endpoint.TTL(record.Ttl), record.Data...))
+		for {
+			req := dns.ListDnsZoneRecordSetsRequest{
+				DnsZoneId: zone.Id,
+				PageToken: pageToken,
+				PageSize:  1000,
 			}
+
+			records, err := p.dnsZoneClient.ListRecordSets(ctx, &req)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, record := range records.RecordSets {
+				if provider.SupportedRecordType(record.Type) {
+					endpoints = append(endpoints, endpoint.NewEndpointWithTTL(record.Name, record.Type, endpoint.TTL(record.Ttl), record.Data...))
+				}
+			}
+
+			if records.NextPageToken == "" {
+				break
+			}
+			pageToken = records.NextPageToken
 		}
 	}
 
